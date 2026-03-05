@@ -34,6 +34,7 @@ SECRET_KEY = 'django-insecure-*zq07-a0-x#2c-m&v!2-1ogo0gn)x3sh!r3u@$7=ci2(hx)dq!
 DEBUG = True # Mantener True por ahora para facilitar debug de despliegue inicial
 
 ALLOWED_HOSTS = ['*'] # Permitir todos para Render
+CSRF_TRUSTED_ORIGINS = ['https://delasgargolaschat-8wsw.onrender.com'] # Requerido para HTTPS en Render
 
 
 # Application definition
