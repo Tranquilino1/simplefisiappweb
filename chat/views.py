@@ -25,7 +25,6 @@ def room(request, room_name):
         'messages': messages,
     })
 
-@csrf_exempt
 @login_required
 def upload_attachment(request, room_name):
     if request.method == 'POST' and request.FILES.get('file'):
@@ -48,7 +47,7 @@ def upload_attachment(request, room_name):
         )
 
         # Obtener avatar del sender
-        avatar_url = '/media/profiles/default.avif'
+        avatar_url = '/static/css/default_avatar.svg'
         if hasattr(request.user, 'profile') and request.user.profile.profile_picture:
             avatar_url = request.user.profile.profile_picture.url
 

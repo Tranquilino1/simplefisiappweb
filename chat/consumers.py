@@ -29,7 +29,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         action_type = text_data_json.get('type', 'chat_message')
         
         username = self.scope['user'].username if self.scope['user'].is_authenticated else 'Anonymous'
-        avatar_url = '/media/profiles/default.avif'
+        avatar_url = '/static/css/default_avatar.svg'
         if self.scope['user'].is_authenticated and hasattr(self.scope['user'], 'profile'):
             if self.scope['user'].profile.profile_picture:
                 avatar_url = self.scope['user'].profile.profile_picture.url

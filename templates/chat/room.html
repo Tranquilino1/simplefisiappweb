@@ -70,11 +70,13 @@
         display: flex;
         gap: 0.8rem;
         align-items: center;
+        flex-wrap: wrap;
     }
 
     #chat-message-input {
         flex: 1;
         margin: 0;
+        min-width: 120px;
     }
 
     .tool-btn {
@@ -89,6 +91,7 @@
         justify-content: center;
         cursor: pointer;
         transition: all 0.2s;
+        flex-shrink: 0;
     }
 
     .tool-btn:hover {
@@ -138,6 +141,51 @@
         border: 2px solid white;
         background: black;
     }
+
+    /* RESPONSIVE MOBILE */
+    @media (max-width: 768px) {
+        .chat-container {
+            height: calc(100vh - 100px);
+            border-radius: 0;
+        }
+
+        .chat-header {
+            padding: 0.7rem 1rem;
+        }
+
+        .chat-messages {
+            padding: 0.8rem;
+        }
+
+        .message {
+            max-width: 85%;
+        }
+
+        .chat-input-area {
+            padding: 0.7rem;
+            gap: 0.4rem;
+        }
+
+        .tool-btn {
+            width: 38px;
+            height: 38px;
+            font-size: 0.9rem;
+        }
+
+        #webrtc-container {
+            top: 60px;
+            right: 5px;
+            left: 5px;
+        }
+
+        #remoteVideo {
+            width: 100%;
+        }
+
+        #localVideo {
+            width: 80px;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -167,7 +215,7 @@
         <div class="message {% if msg.sender.username == user.username %}message-self{% else %}message-other{% endif %}"
             style="display: flex; gap: 10px;">
             {% if msg.sender.username != user.username %}
-            <img src="{% if msg.sender.profile.profile_picture %}{{ msg.sender.profile.profile_picture.url }}{% else %}/media/profiles/default.avif{% endif %}"
+            <img src="{% if msg.sender.profile.profile_picture %}{{ msg.sender.profile.profile_picture.url }}{% else %}/static/css/default_avatar.svg{% endif %}"
                 style="width: 32px; height: 32px; border-radius: 50%; align-self: flex-start; object-fit: cover;">
             {% endif %}
             <div style="flex:1;">
@@ -194,9 +242,12 @@
 <script>
     const roomName = JSON.parse(document.getElementById('room-name').textContent);
     const currentUser = "{{ user.username }}";
+    const csrfToken = '{{ csrf_token }}';
 
+    // Protocolo dinámico: wss para HTTPS, ws para HTTP
+    const wsScheme = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const chatSocket = new WebSocket(
-        'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+        wsScheme + '://' + window.location.host + '/ws/chat/' + roomName + '/'
     );
 
     const chatLog = document.querySelector('#chat-log');
@@ -222,7 +273,8 @@
 
             let contentHTML = '';
             if (!isSelf) {
-                contentHTML += `<img src="${data.avatar_url}" style="width: 32px; height: 32px; border-radius: 50%; align-self: flex-start; object-fit: cover;">`;
+                const avatarSrc = data.avatar_url || '/static/css/default_avatar.svg';
+                contentHTML += `<img src="${avatarSrc}" style="width: 32px; height: 32px; border-radius: 50%; align-self: flex-start; object-fit: cover;">`;
             }
             contentHTML += `<div style="flex:1;">`;
             if (!isSelf) {
@@ -297,7 +349,11 @@
         formData.append('file', file);
         formData.append('msg_type', 'file');
 
-        await fetch(`/chat/${roomName}/upload/`, { method: 'POST', body: formData });
+        await fetch(`/chat/${roomName}/upload/`, {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrfToken }
+        });
         e.target.value = '';
     };
 
@@ -317,7 +373,11 @@
                     const formData = new FormData();
                     formData.append('file', audioBlob, 'voice_message.webm');
                     formData.append('msg_type', 'voice');
-                    await fetch(`/chat/${roomName}/upload/`, { method: 'POST', body: formData });
+                    await fetch(`/chat/${roomName}/upload/`, {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'X-CSRFToken': csrfToken }
+                    });
                     audioChunks = [];
                 };
                 mediaRecorder.start();
