@@ -28,6 +28,15 @@ class ChatConsumer(AsyncWebsocketConsumer):
             self.channel_name
         )
 
+    @database_sync_to_async
+    def get_user_info(self, user):
+        if user.is_authenticated:
+            avatar_url = '/static/css/default_avatar.svg'
+            if hasattr(user, 'profile') and user.profile.profile_picture:
+                avatar_url = user.profile.profile_picture.url
+            return user.username, avatar_url
+        return 'Anonymous', '/static/css/default_avatar.svg'
+
     # Receive message from WebSocket
     async def receive(self, text_data):
         text_data_json = json.loads(text_data)
@@ -35,11 +44,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Determine if it's a normal chat message or WebRTC signal
         action_type = text_data_json.get('type', 'chat_message')
         
-        username = self.scope['user'].username if self.scope['user'].is_authenticated else 'Anonymous'
-        avatar_url = '/static/css/default_avatar.svg'
-        if self.scope['user'].is_authenticated and hasattr(self.scope['user'], 'profile'):
-            if self.scope['user'].profile.profile_picture:
-                avatar_url = self.scope['user'].profile.profile_picture.url
+        username, avatar_url = await self.get_user_info(self.scope['user'])
                 
         if action_type == 'chat_message':
             message = text_data_json['message']
