@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="auth-wrapper animate-fade-in">
+    <div class="glass-panel text-center">
+        <h2 style="margin-top:0;">Bienvenido de nuevo</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">Inicia sesión en tu cuenta</p>
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-group text-left" style="text-align: left;">
+                <label for="id_username">Usuario</label>
+                <input type="text" name="username" autofocus autocapitalize="none" autocomplete="username"
+                    maxlength="150" required id="id_username" class="form-control" placeholder="Introduce tu usuario">
+            </div>
+            <div class="form-group text-left" style="text-align: left;">
+                <label for="id_password">Contraseña</label>
+                <input type="password" name="password" autocomplete="current-password" required id="id_password"
+                    class="form-control" placeholder="Introduce tu contraseña">
+            </div>
+
+            {% if form.errors %}
+            <div style="color: #ef4444; font-size: 0.8rem; margin-bottom: 1rem; text-align: left;">
+                Tu usuario y contraseña no coinciden. Inténtalo de nuevo.
+            </div>
+            {% endif %}
+
+            <button type="submit" class="btn-primary mt-4">Acceder</button>
+        </form>
+
+        <p class="mt-4" style="font-size: 0.9rem;">
+            ¿Nuevo aquí? <a href="{% url 'users:register' %}"
+                style="color: var(--primary-color); text-decoration: none;">Regístrate</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

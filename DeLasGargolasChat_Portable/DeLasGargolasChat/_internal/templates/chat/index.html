@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .badge-group {
+        font-size: 0.7rem;
+        background: var(--primary-color);
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        margin-left: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="animate-fade-in" style="margin: 2rem 0;">
+    <div class="text-center" style="margin-bottom: 3rem;">
+        <h1
+            style="font-size: 2.5rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, #a855f7, #6366f1); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            Comunicación sin límites</h1>
+        <p style="color: var(--text-muted); font-size: 1.1rem;">Únete a una sala existente o crea una nueva
+            colaboración.</p>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem;">
+        <!-- Crear Nueva Sala / Unirse -->
+        <div class="glass-panel" style="display: flex; flex-direction: column; justify-content: center;">
+            <h3>Unirse o Crear Sala</h3>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Escribe el nombre de la sala
+                para unirte inmediatamente.</p>
+            <input type="text" id="room-name-input" class="form-control" placeholder="Nombre de la sala..."
+                style="margin-bottom: 1rem;">
+            <button id="room-name-submit" class="btn-primary">Entrar a la sala</button>
+        </div>
+
+        {% if rooms %}
+        {% for room in rooms %}
+        <div class="glass-panel" style="display: flex; flex-direction: column; justify-content: space-between;">
+            <div>
+                <h3 style="margin-top: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <span>#️⃣</span> {{ room.name }}
+                    {% if room.is_group %}<span class="badge-group">Grupo</span>{% endif %}
+                </h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">Creada: {{ room.created_at|date:"d M, Y" }}</p>
+            </div>
+            <a href="{% url 'chat:room' room.name %}" class="btn-primary mt-4"
+                style="background: rgba(99, 102, 241, 0.2); border: 1px solid var(--primary-color);">Unirse</a>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="glass-panel" style="grid-column: 1 / -1; text-align: center; padding: 4rem 2rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">👻</div>
+            <h3>No hay salas activas</h3>
+            <p style="color: var(--text-muted);">Sé el primero en iniciar una conversación creando una nueva sala en el
+                panel.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.querySelector('#room-name-input').focus();
+    document.querySelector('#room-name-input').onkeyup = function (e) {
+        if (e.keyCode === 13) {  // enter, return
+            document.querySelector('#room-name-submit').click();
+        }
+    };
+
+    document.querySelector('#room-name-submit').onclick = function (e) {
+        var roomName = document.querySelector('#room-name-input').value;
+        if (roomName.trim() !== '') {
+            window.location.pathname = '/chat/' + roomName + '/';
+        }
+    };
+</script>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="auth-wrapper animate-fade-in">
+    <div class="glass-panel text-center">
+        <h2 style="margin-top:0;">Únete a DeLasGargolasChat</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">Crea tu cuenta para comenzar</p>
+
+        <form method="POST" novalidate>
+            {% csrf_token %}
+            {% for field in form %}
+            <div class="form-group text-left" style="text-align: left;">
+                <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                <div style="color: #ef4444; font-size: 0.8rem; margin-top: 0.25rem;">{{ field.errors.0 }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            <button type="submit" class="btn-primary mt-4">Registrarse</button>
+        </form>
+
+        <p class="mt-4" style="font-size: 0.9rem;">
+            ¿Ya tienes cuenta? <a href="{% url 'users:login' %}"
+                style="color: var(--primary-color); text-decoration: none;">Inicia sesión</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

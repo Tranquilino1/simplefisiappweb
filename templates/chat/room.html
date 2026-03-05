@@ -1,0 +1,380 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 140px);
+        background: var(--glass-bg);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .chat-header {
+        padding: 1rem 1.5rem;
+        background: rgba(15, 23, 42, 0.9);
+        border-bottom: 1px solid var(--glass-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .chat-messages {
+        flex: 1;
+        padding: 1.5rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .message {
+        max-width: 70%;
+        padding: 0.8rem 1.2rem;
+        border-radius: 12px;
+        position: relative;
+        word-break: break-word;
+    }
+
+    .message-other {
+        align-self: flex-start;
+        background: rgba(255, 255, 255, 0.1);
+        border-bottom-left-radius: 4px;
+    }
+
+    .message-self {
+        align-self: flex-end;
+        background: linear-gradient(135deg, var(--primary-color), #8b5cf6);
+        border-bottom-right-radius: 4px;
+    }
+
+    .message-sender {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: 0.25rem;
+        display: block;
+    }
+
+    .message-self .message-sender {
+        color: rgba(255, 255, 255, 0.7);
+        display: none;
+    }
+
+    .chat-input-area {
+        padding: 1.2rem;
+        background: rgba(15, 23, 42, 0.6);
+        border-top: 1px solid var(--glass-border);
+        display: flex;
+        gap: 0.8rem;
+        align-items: center;
+    }
+
+    #chat-message-input {
+        flex: 1;
+        margin: 0;
+    }
+
+    .tool-btn {
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--glass-border);
+        color: var(--text-main);
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .tool-btn:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .chat-messages::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .chat-messages::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .chat-messages::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+    }
+
+    /* WEBRTC UI LAYER */
+    #webrtc-container {
+        display: none;
+        position: absolute;
+        top: 80px;
+        right: 20px;
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid var(--primary-color);
+        padding: 10px;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        z-index: 100;
+        text-align: center;
+    }
+
+    #remoteVideo {
+        width: 300px;
+        border-radius: 8px;
+        background: black;
+    }
+
+    #localVideo {
+        width: 100px;
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        border-radius: 6px;
+        border: 2px solid white;
+        background: black;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="chat-container animate-fade-in">
+    <div class="chat-header">
+        <div>
+            <h2 style="margin: 0; font-size: 1.2rem;">Sala: {{ room_name }}</h2>
+            <span style="font-size: 0.8rem; color: #10b981;">● En vivo</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <button class="tool-btn" id="btn-video" title="Videollamada">📷</button>
+            <button class="tool-btn" id="btn-call" title="Llamada de voz">📞</button>
+        </div>
+    </div>
+
+    <!-- WebRTC Video Overlay -->
+    <div id="webrtc-container">
+        <video id="remoteVideo" autoplay playsinline></video>
+        <video id="localVideo" autoplay playsinline muted></video>
+        <button id="end-call-btn" class="btn-primary mt-2" style="background:#ef4444;border:none;">Terminar
+            Llamada</button>
+    </div>
+
+    <div class="chat-messages" id="chat-log">
+        {% for msg in messages %}
+        <div class="message {% if msg.sender.username == user.username %}message-self{% else %}message-other{% endif %}"
+            style="display: flex; gap: 10px;">
+            {% if msg.sender.username != user.username %}
+            <img src="{% if msg.sender.profile.profile_picture %}{{ msg.sender.profile.profile_picture.url }}{% else %}/media/profiles/default.avif{% endif %}"
+                style="width: 32px; height: 32px; border-radius: 50%; align-self: flex-start; object-fit: cover;">
+            {% endif %}
+            <div style="flex:1;">
+                <span class="message-sender">{{ msg.sender.username }}</span>
+                <div>{{ msg.content|safe }}</div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="chat-input-area">
+        <input type="file" id="file-input" style="display:none;">
+        <button class="tool-btn" id="btn-attach" title="Adjuntar Archivo">📎</button>
+        <button class="tool-btn" id="btn-voice" title="Grabar Nota de Voz">🎤</button>
+        <input type="text" id="chat-message-input" class="form-control" placeholder="Escribe un mensaje..." autofocus>
+        <button id="chat-message-submit" class="btn-primary" style="width: auto;">Enviar 🚀</button>
+    </div>
+</div>
+
+{{ room_name|json_script:"room-name" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const roomName = JSON.parse(document.getElementById('room-name').textContent);
+    const currentUser = "{{ user.username }}";
+
+    const chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + roomName + '/'
+    );
+
+    const chatLog = document.querySelector('#chat-log');
+    function scrollToBottom() {
+        chatLog.scrollTop = chatLog.scrollHeight;
+    }
+    scrollToBottom();
+
+    // --------------- CHAT y WEBRTC MULTIPLEX ---------------
+    let peerConnection;
+    const servers = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+    let localStream;
+
+    chatSocket.onmessage = async function (e) {
+        const data = JSON.parse(e.data);
+
+        if (data.type === 'chat_message') {
+            const mdv = document.createElement('div');
+            const isSelf = data.username === currentUser;
+            mdv.className = isSelf ? 'message message-self' : 'message message-other';
+            mdv.style.display = 'flex';
+            mdv.style.gap = '10px';
+
+            let contentHTML = '';
+            if (!isSelf) {
+                contentHTML += `<img src="${data.avatar_url}" style="width: 32px; height: 32px; border-radius: 50%; align-self: flex-start; object-fit: cover;">`;
+            }
+            contentHTML += `<div style="flex:1;">`;
+            if (!isSelf) {
+                contentHTML += `<span class="message-sender">${data.username}</span>`;
+            }
+            contentHTML += `<div>${data.message}</div></div>`;
+
+            mdv.innerHTML = contentHTML;
+            chatLog.appendChild(mdv);
+            scrollToBottom();
+        }
+        else if (data.action) {
+            // WEBRTC SIGNALING
+            if (!peerConnection) {
+                // Recepción de una llamada entrante
+                document.getElementById('webrtc-container').style.display = 'block';
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    document.getElementById('localVideo').srcObject = localStream;
+                } catch (err) { console.error("Media Device Error: ", err); }
+
+                peerConnection = new RTCPeerConnection(servers);
+                if (localStream) {
+                    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+                }
+                peerConnection.ontrack = ev => { document.getElementById('remoteVideo').srcObject = ev.streams[0]; };
+                peerConnection.onicecandidate = ev => {
+                    if (ev.candidate) chatSocket.send(JSON.stringify({ type: 'webrtc', action: 'ice_candidate', candidate: ev.candidate }));
+                };
+            }
+
+            if (data.action === 'offer') {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                const answer = await peerConnection.createAnswer();
+                await peerConnection.setLocalDescription(answer);
+                chatSocket.send(JSON.stringify({ type: 'webrtc', action: 'answer', sdp: answer }));
+            } else if (data.action === 'answer') {
+                await peerConnection.setRemoteDescription(new RTCSessionDescription(data.sdp));
+            } else if (data.action === 'ice_candidate') {
+                await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+        }
+    };
+
+    chatSocket.onclose = function (e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+
+    // --------------- MENSAJES DE TEXTO ---------------
+    document.querySelector('#chat-message-input').onkeyup = function (e) {
+        if (e.keyCode === 13) document.querySelector('#chat-message-submit').click();
+    };
+
+    document.querySelector('#chat-message-submit').onclick = function (e) {
+        const messageInputDom = document.querySelector('#chat-message-input');
+        const message = messageInputDom.value;
+        if (message.trim() !== "") {
+            chatSocket.send(JSON.stringify({
+                'type': 'chat_message',
+                'message': message
+            }));
+            messageInputDom.value = '';
+        }
+    };
+
+    // --------------- ARCHIVOS ADJUNTOS ---------------
+    document.getElementById('btn-attach').onclick = () => document.getElementById('file-input').click();
+    document.getElementById('file-input').onchange = async (e) => {
+        if (!e.target.files.length) return;
+        const file = e.target.files[0];
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('msg_type', 'file');
+
+        await fetch(`/chat/${roomName}/upload/`, { method: 'POST', body: formData });
+        e.target.value = '';
+    };
+
+    // --------------- NOTAS DE VOZ ---------------
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    document.getElementById('btn-voice').onclick = async () => {
+        if (!isRecording) {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = ev => audioChunks.push(ev.data);
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const formData = new FormData();
+                    formData.append('file', audioBlob, 'voice_message.webm');
+                    formData.append('msg_type', 'voice');
+                    await fetch(`/chat/${roomName}/upload/`, { method: 'POST', body: formData });
+                    audioChunks = [];
+                };
+                mediaRecorder.start();
+                isRecording = true;
+                document.getElementById('btn-voice').innerText = '🛑';
+                document.getElementById('btn-voice').style.background = '#ef4444';
+            } catch (e) {
+                alert("No se pudo acceder al micrófono.");
+            }
+        } else {
+            mediaRecorder.stop();
+            isRecording = false;
+            document.getElementById('btn-voice').innerHTML = '🎤';
+            document.getElementById('btn-voice').style.background = 'rgba(255, 255, 255, 0.05)';
+        }
+    };
+
+    // --------------- WEBRTC INICIO LAMADA ---------------
+    async function startCall(videoEnabled) {
+        document.getElementById('webrtc-container').style.display = 'block';
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: videoEnabled, audio: true });
+            document.getElementById('localVideo').srcObject = localStream;
+        } catch (err) {
+            console.error("No se pudo acceder a los dispositivos:", err);
+            return;
+        }
+
+        peerConnection = new RTCPeerConnection(servers);
+        localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+
+        peerConnection.ontrack = event => {
+            document.getElementById('remoteVideo').srcObject = event.streams[0];
+        };
+
+        peerConnection.onicecandidate = event => {
+            if (event.candidate) {
+                chatSocket.send(JSON.stringify({ type: 'webrtc', action: 'ice_candidate', candidate: event.candidate }));
+            }
+        };
+
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+        chatSocket.send(JSON.stringify({ type: 'webrtc', action: 'offer', sdp: offer }));
+    }
+
+    document.getElementById('btn-video').onclick = () => startCall(true);
+    document.getElementById('btn-call').onclick = () => startCall(false);
+
+    document.getElementById('end-call-btn').onclick = () => {
+        if (peerConnection) peerConnection.close();
+        if (localStream) localStream.getTracks().forEach(track => track.stop());
+        peerConnection = null;
+        localStream = null;
+        document.getElementById('webrtc-container').style.display = 'none';
+        document.getElementById('remoteVideo').srcObject = null;
+        document.getElementById('localVideo').srcObject = null;
+    };
+</script>
+{% endblock %}
