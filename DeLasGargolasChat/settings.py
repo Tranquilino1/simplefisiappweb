@@ -31,9 +31,9 @@ else:
 SECRET_KEY = 'django-insecure-*zq07-a0-x#2c-m&v!2-1ogo0gn)x3sh!r3u@$7=ci2(hx)dq!'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True # Mantener True por ahora para facilitar debug de despliegue inicial
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*'] # Permitir todos para Render
 
 
 # Application definition
@@ -58,6 +58,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -140,6 +141,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles' # Carpeta requerida por Render
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = DB_DIR / 'media'
