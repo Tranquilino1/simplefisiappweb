@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: delasgargolaschat
+    runtime: python
+    buildCommand: ./build.sh
+    startCommand: daphne -b 0.0.0.0 -p $PORT DeLasGargolasChat.asgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.14.3
+      - key: DJANGO_SETTINGS_MODULE
+        value: DeLasGargolasChat.settings
