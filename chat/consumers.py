@@ -1,10 +1,17 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from .models import Room, Message
+import re
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.room_name = self.scope['url_route']['kwargs']['room_name']
-        self.room_group_name = f'chat_{self.room_name}'
+        from urllib.parse import unquote
+        self.room_name = unquote(self.scope['url_route']['kwargs']['room_name'])
+        
+        # Limpiar caracteres ilegales para el group_name en Channels (solo alfa, digitos, guiones, puntos)
+        safe_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', self.room_name)
+        self.room_group_name = f'chat_{safe_name}'
 
         # Join room group
         await self.channel_layer.group_add(
@@ -36,6 +43,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 
         if action_type == 'chat_message':
             message = text_data_json['message']
+            
+            # Guardar el mensaje en BD si está autenticado
+            if self.scope['user'].is_authenticated:
+                await self.save_message(self.room_name, self.scope['user'], message)
+
             await self.channel_layer.group_send(
                 self.room_group_name,
                 {
@@ -76,3 +88,8 @@ class ChatConsumer(AsyncWebsocketConsumer):
         # Forward WebRTC signal to WebSocket
         if event['sender'] != self.scope['user'].username:
             await self.send(text_data=json.dumps(event['payload']))
+
+    @database_sync_to_async
+    def save_message(self, room_name, user, message_content):
+        room_obj, _ = Room.objects.get_or_create(name=room_name)
+        Message.objects.create(room=room_obj, sender=user, content=message_content, msg_type='text')

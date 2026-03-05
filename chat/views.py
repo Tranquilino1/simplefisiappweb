@@ -62,10 +62,14 @@ def upload_attachment(request, room_name):
         message.content = html_msg
         message.save()
 
+        # Sanitizar group_name igual que en consumer
+        import re
+        safe_name = re.sub(r'[^a-zA-Z0-9_\-\.]', '_', room_name)
+
         # Broadcast via websocket
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(
-            f'chat_{room_name}',
+            f'chat_{safe_name}',
             {
                 'type': 'chat_message',
                 'message': html_msg,
